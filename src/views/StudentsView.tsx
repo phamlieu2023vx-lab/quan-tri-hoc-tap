@@ -58,6 +58,10 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [statusNotification, setStatusNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  // Quick Inline Note State
+  const [inlineEditingNoteId, setInlineEditingNoteId] = useState<string | null>(null);
+  const [inlineNoteText, setInlineNoteText] = useState<string>('');
+
   // Sync with activeTab from navigation
   React.useEffect(() => {
     if (activeTab === 'students_add') {
@@ -561,8 +565,72 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
                       {st.className || '1/2'}
                     </td>
 
-                    <td className="py-2.5 px-3 text-gray-500 max-w-xs truncate" title={st.notes || ''}>
-                      {st.notes || '---'}
+                    <td className="py-2.5 px-3 max-w-xs group/note">
+                      {inlineEditingNoteId === st.id ? (
+                        <div className="flex items-center gap-1.5 animate-in fade-in duration-100">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={inlineNoteText}
+                            onChange={e => setInlineNoteText(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                storage.updateStudentNote(st.id, inlineNoteText);
+                                setInlineEditingNoteId(null);
+                                showNotice('success', `Đã lưu ghi chú cho học sinh ${st.fullName}`);
+                              } else if (e.key === 'Escape') {
+                                setInlineEditingNoteId(null);
+                              }
+                            }}
+                            className="w-full px-2.5 py-1 bg-white border-2 border-[#1976D2] rounded text-xs text-gray-800 focus:outline-none shadow-xs font-sans"
+                            placeholder="Nhập ghi chú cho học sinh..."
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              storage.updateStudentNote(st.id, inlineNoteText);
+                              setInlineEditingNoteId(null);
+                              showNotice('success', `Đã lưu ghi chú cho học sinh ${st.fullName}`);
+                            }}
+                            className="p-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-colors flex-shrink-0 cursor-pointer shadow-xs"
+                            title="Lưu ghi chú (Enter)"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setInlineEditingNoteId(null)}
+                            className="p-1 bg-gray-200 hover:bg-gray-300 text-gray-600 rounded transition-colors flex-shrink-0 cursor-pointer"
+                            title="Hủy bỏ (Esc)"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-1">
+                          <span
+                            className="text-gray-700 text-xs truncate cursor-pointer hover:text-[#1976D2] hover:underline transition-colors block flex-1"
+                            title={st.notes ? `${st.notes} (Bấm đúp hoặc bấm icon để sửa)` : 'Chưa có ghi chú (Bấm để thêm)'}
+                            onDoubleClick={() => {
+                              setInlineEditingNoteId(st.id);
+                              setInlineNoteText(st.notes || '');
+                            }}
+                          >
+                            {st.notes || <span className="text-gray-400 italic text-[11px]">+ Thêm ghi chú...</span>}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInlineEditingNoteId(st.id);
+                              setInlineNoteText(st.notes || '');
+                            }}
+                            className="opacity-0 group-hover/note:opacity-100 p-1 text-gray-400 hover:text-[#1976D2] hover:bg-blue-50 rounded transition-all flex-shrink-0 cursor-pointer"
+                            title="Sửa nhanh ghi chú"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
                     </td>
 
                     <td className="py-2.5 px-3 text-center">

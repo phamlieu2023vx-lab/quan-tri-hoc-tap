@@ -970,24 +970,99 @@ class StorageService {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data.students)) {
-          if (data.students.length > 0) {
-            localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(data.students));
-            this.notify(STORAGE_KEYS.STUDENTS);
-          } else {
+          const serverStudents: Student[] = data.students;
+          const localStudents = this.getStudents();
+
+          if (serverStudents.length === 0) {
             // If server has no students yet, push current local list to server
-            const local = this.getStudents();
-            if (local.length > 0) {
+            if (localStudents.length > 0) {
               await fetch('/api/students/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ students: local, updateExisting: true }),
+                body: JSON.stringify({ students: localStudents, updateExisting: true }),
               });
+            }
+          } else {
+            // SMART MERGE: Compare by ID and updatedAt timestamps!
+            // Never overwrite local changes if local timestamp is newer or equal
+            let hasNewerLocal = false;
+            const mergedMap = new Map<string, Student>();
+
+            // Populate from server first
+            serverStudents.forEach(s => mergedMap.set(s.id, s));
+
+            // Merge local students
+            localStudents.forEach(localS => {
+              const serverS = mergedMap.get(localS.id);
+              if (!serverS) {
+                // Student exists in local storage only
+                mergedMap.set(localS.id, localS);
+                hasNewerLocal = true;
+              } else {
+                const localTime = new Date(localS.updatedAt || localS.createdAt || 0).getTime();
+                const serverTime = new Date(serverS.updatedAt || serverS.createdAt || 0).getTime();
+
+                // If local has newer update or notes/fields differ and localTime >= serverTime, keep local
+                if (localTime > serverTime || (localTime === serverTime && localS.notes !== serverS.notes)) {
+                  mergedMap.set(localS.id, {
+                    ...serverS,
+                    ...localS,
+                    updatedAt: localS.updatedAt || new Date().toISOString(),
+                  });
+                  hasNewerLocal = true;
+                }
+              }
+            });
+
+            const mergedList = Array.from(mergedMap.values());
+            localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(mergedList));
+            this.notify(STORAGE_KEYS.STUDENTS);
+
+            // If we have newer local modifications (e.g. notes changed), push to server
+            if (hasNewerLocal) {
+              fetch('/api/students/batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ students: mergedList, updateExisting: true }),
+              }).catch(e => console.warn('Sync newer batch error:', e));
             }
           }
         }
       }
     } catch (e) {
       console.warn('[LearnBridge] Remote sync fallback to localStorage', e);
+    }
+  }
+
+  // Auto-sync a single student to Supabase cloud if configured
+  public async syncStudentToSupabase(student: Student): Promise<void> {
+    if (typeof window === 'undefined') return;
+    try {
+      const { getSupabaseClient } = await import('./supabaseClient.ts');
+      const client = getSupabaseClient();
+      if (!client) return;
+
+      await client.from('students').upsert({
+        id: student.id,
+        student_code: student.studentCode,
+        full_name: student.fullName,
+        last_name: student.lastName || '',
+        middle_name: student.middleName || '',
+        first_name: student.firstName || '',
+        date_of_birth: student.dateOfBirth,
+        gender: student.gender,
+        class_name: student.className,
+        status: student.status,
+        parent_name: student.parentName || '',
+        phone: student.phone || '',
+        address: student.address || '',
+        notes: student.notes || '',
+        is_demo: !!student.isDemo,
+        created_at: student.createdAt,
+        updated_at: student.updatedAt,
+      }, { onConflict: 'id' });
+    } catch (err) {
+      // Silent catch if Supabase is offline
     }
   }
 
@@ -1003,6 +1078,33 @@ class StorageService {
 
   public getStudentById(id: string): Student | undefined {
     return this.getStudents().find(s => s.id === id);
+  }
+
+  public updateStudentNote(id: string, notes: string): Student | undefined {
+    const list = this.getStudents();
+    const index = list.findIndex(s => s.id === id);
+    if (index === -1) return undefined;
+
+    const now = new Date().toISOString();
+    const updated: Student = {
+      ...list[index],
+      notes: notes.trim(),
+      updatedAt: now,
+    };
+    list[index] = updated;
+    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(list));
+    this.logActivity('Cập nhật ghi chú', `Cập nhật ghi chú học sinh ${updated.fullName}`, 'student');
+    this.notify(STORAGE_KEYS.STUDENTS);
+
+    // Sync to server immediately
+    fetch(`/api/students/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(err => console.warn('Sync student note error:', err));
+
+    this.syncStudentToSupabase(updated);
+    return updated;
   }
 
   public saveStudent(student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): Student {
@@ -1031,6 +1133,7 @@ class StorageService {
           body: JSON.stringify(updated),
         }).catch(err => console.warn('Sync student remote error:', err));
 
+        this.syncStudentToSupabase(updated);
         return updated;
       }
     }
@@ -1055,6 +1158,7 @@ class StorageService {
       body: JSON.stringify(newStudent),
     }).catch(err => console.warn('Sync student remote error:', err));
 
+    this.syncStudentToSupabase(newStudent);
     return newStudent;
   }
 

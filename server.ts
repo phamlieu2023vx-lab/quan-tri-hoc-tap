@@ -338,14 +338,27 @@ app.put('/api/students/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   const updates = req.body;
 
-  const index = db.students.findIndex((s: any) => s.id === id);
+  let index = db.students.findIndex((s: any) => s.id === id);
+  if (index === -1 && updates.studentCode) {
+    const codeClean = updates.studentCode.trim().toLowerCase();
+    index = db.students.findIndex((s: any) => s.studentCode?.trim().toLowerCase() === codeClean);
+  }
+
   if (index === -1) {
-    return res.status(404).json({ error: 'Không tìm thấy hồ sơ học sinh.' });
+    // If not found, upsert as new record so changes are never dropped
+    const newStudent = {
+      ...updates,
+      id: id || `hs-${Date.now()}`,
+      updatedAt: new Date().toISOString(),
+    };
+    db.students.push(newStudent);
+    writeDb(db);
+    return res.status(201).json(newStudent);
   }
 
   if (updates.studentCode) {
     const codeClean = updates.studentCode.trim().toLowerCase();
-    const isDuplicate = db.students.some((s: any) => s.id !== id && s.studentCode.trim().toLowerCase() === codeClean);
+    const isDuplicate = db.students.some((s: any) => s.id !== db.students[index].id && s.studentCode.trim().toLowerCase() === codeClean);
     if (isDuplicate) {
       return res.status(400).json({ error: `Mã học sinh "${updates.studentCode}" đã được dùng bởi học sinh khác!` });
     }
@@ -354,7 +367,7 @@ app.put('/api/students/:id', (req: Request, res: Response) => {
   const updatedStudent = {
     ...db.students[index],
     ...updates,
-    id,
+    id: db.students[index].id,
     updatedAt: new Date().toISOString(),
   };
 
