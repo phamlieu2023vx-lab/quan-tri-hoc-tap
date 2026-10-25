@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Building2, User, ChevronDown, Sparkles, LogOut, Settings, ShieldCheck, Download, Type } from 'lucide-react';
+import { BookOpen, Building2, User, ChevronDown, Sparkles, LogOut, Settings, ShieldCheck, Download, Type, Database } from 'lucide-react';
 import { ClassSettings } from '../types/index.ts';
 
 interface HeaderProps {
@@ -7,10 +7,19 @@ interface HeaderProps {
   onNavigate: (tab: string) => void;
   onExportBackup: () => void;
   onToggleFontMode?: () => void;
+  onOpenSupabase?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ settings, onNavigate, onExportBackup, onToggleFontMode }) => {
+export const Header: React.FC<HeaderProps> = ({ settings, onNavigate, onExportBackup, onToggleFontMode, onOpenSupabase }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const handleSupabaseClick = () => {
+    if (onOpenSupabase) {
+      onOpenSupabase();
+    } else {
+      onNavigate('settings');
+    }
+  };
 
   return (
     <header className="relative bg-gradient-to-r from-[#1557A6] via-[#1976D2] to-[#2B8BE3] text-white shadow-md border-b border-[#0f4484] select-none z-30">
@@ -62,8 +71,19 @@ export const Header: React.FC<HeaderProps> = ({ settings, onNavigate, onExportBa
           </div>
         </div>
 
-        {/* Right: Font Mode Switcher & Teacher Profile */}
+        {/* Right: Font Mode Switcher, Supabase Quick Access & Teacher Profile */}
         <div className="flex items-center gap-2">
+          {/* Supabase Quick Connection Button */}
+          <button
+            onClick={handleSupabaseClick}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/25 hover:bg-emerald-500/40 border border-emerald-300/40 rounded-full text-xs text-white transition-all shadow-2xs font-serif cursor-pointer"
+            title="Quản lý và đồng bộ cơ sở dữ liệu Supabase"
+          >
+            <Database className="w-3.5 h-3.5 text-emerald-300" />
+            <span className="text-[11px] font-bold">Supabase</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+          </button>
+
           {onToggleFontMode && (
             <button
               onClick={onToggleFontMode}
@@ -115,6 +135,20 @@ export const Header: React.FC<HeaderProps> = ({ settings, onNavigate, onExportBa
                   <p className="text-sm font-bold text-[#1557A6] font-serif">{settings.teacherName}</p>
                   <p className="text-xs text-gray-600 font-serif">Lớp {settings.className} – {settings.schoolName}</p>
                 </div>
+
+                {/* Supabase entry */}
+                <button
+                  onClick={() => { setDropdownOpen(false); handleSupabaseClick(); }}
+                  className="w-full px-4 py-2.5 text-left text-sm hover:bg-[#EAF4FF] flex items-center justify-between gap-2.5 transition-colors font-serif bg-emerald-50/60 border-b border-emerald-100"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Database className="w-4 h-4 text-emerald-600" />
+                    <span className="font-bold text-emerald-900">Cơ sở dữ liệu Supabase</span>
+                  </div>
+                  <span className="text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded font-mono font-bold">
+                    mcngorgybkspuhcfnued
+                  </span>
+                </button>
 
                 {onToggleFontMode && (
                   <button

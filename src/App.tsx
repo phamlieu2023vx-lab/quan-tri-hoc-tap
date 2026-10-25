@@ -121,6 +121,7 @@ export default function App() {
         onNavigate={tab => setActiveTab(tab as ActiveNavTab)}
         onExportBackup={handleExportBackup}
         onToggleFontMode={handleToggleFontMode}
+        onOpenSupabase={() => setActiveTab('settings')}
       />
 
       {/* 2. Main Workspace Body: Sidebar + Main Content Area + Right Info Column */}
