@@ -1,0 +1,6 @@
+{
+  "name": "TRI THỨC NỐI TIẾP AI – LEARNBRIDGE",
+  "description": "Hệ thống quản lý lớp học số và hỗ trợ cá nhân hóa học tập dành cho giáo viên tiểu học - Lớp 1/2 Trường TH Phạm Phi Hùng",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

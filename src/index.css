@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&family=Noto+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600;1,700&family=Tinos:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Noto Serif", "Tinos", "Times New Roman", Times, serif;
+  --font-sans: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  html,
+  body,
+  button,
+  input,
+  select,
+  textarea {
+    font-family: "Noto Serif", "Tinos", "Times New Roman", Times, serif;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: normal !important;
+    word-spacing: normal !important;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: #F7FAFF;
+    color: #17365D;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: normal !important;
+  }
+}
+
+/* Force override of font-serif and font-sans everywhere to eliminate diacritic spacing bugs */
+.font-serif,
+[class*="font-serif"] {
+  font-family: "Noto Serif", "Tinos", "Times New Roman", Times, serif !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+}
+
+.font-sans,
+[class*="font-sans"] {
+  font-family: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+}
+
+/* Modern Sans Mode toggle (Be Vietnam Pro - designed specifically for Vietnamese) */
+body.font-sans-mode,
+body.font-sans-mode .font-serif,
+body.font-sans-mode [class*="font-serif"],
+body.font-sans-mode h1,
+body.font-sans-mode h2,
+body.font-sans-mode h3,
+body.font-sans-mode h4,
+body.font-sans-mode h5,
+body.font-sans-mode h6,
+body.font-sans-mode p,
+body.font-sans-mode span,
+body.font-sans-mode div,
+body.font-sans-mode button,
+body.font-sans-mode input,
+body.font-sans-mode select,
+body.font-sans-mode table {
+  font-family: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Print styling for worksheets, attendance, and reports */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .page-break {
+    page-break-after: always;
+  }
+}
