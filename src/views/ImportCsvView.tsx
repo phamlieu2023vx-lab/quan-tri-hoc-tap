@@ -23,6 +23,7 @@ import {
   splitVietnameseName,
 } from '../types/index.ts';
 import { storage } from '../services/storage.ts';
+import { useNotification } from '../context/NotificationContext.tsx';
 
 interface ImportCsvViewProps {
   existingStudents: Student[];
@@ -50,6 +51,7 @@ interface ParsedRow {
 }
 
 export const ImportCsvView: React.FC<ImportCsvViewProps> = ({ existingStudents, onNavigate }) => {
+  const { showToast, showConfirm } = useNotification();
   // Wizard steps: 1. Chọn tệp -> 2. Ánh xạ cột -> 3. Xem trước & Kiểm tra -> 4. Kết quả
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [fileName, setFileName] = useState<string>('');
@@ -147,7 +149,7 @@ export const ImportCsvView: React.FC<ImportCsvViewProps> = ({ existingStudents, 
           const sheetJson = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: '' });
 
           if (sheetJson.length === 0) {
-            alert('Tệp Excel không có dòng dữ liệu nào.');
+            showToast('Tệp Excel không có dòng dữ liệu nào.', 'warning');
             return;
           }
 
@@ -166,7 +168,7 @@ export const ImportCsvView: React.FC<ImportCsvViewProps> = ({ existingStudents, 
           setCurrentStep(2);
         } catch (err) {
           console.error('Error reading Excel:', err);
-          alert('Không thể đọc tệp Excel. Vui lòng kiểm tra lại định dạng tệp.');
+          showToast('Không thể đọc tệp Excel. Vui lòng kiểm tra lại định dạng tệp.', 'error');
         }
       };
       reader.readAsArrayBuffer(file);
@@ -186,7 +188,7 @@ export const ImportCsvView: React.FC<ImportCsvViewProps> = ({ existingStudents, 
           const sheetJson = XLSX.utils.sheet_to_json<Record<string, any>>(firstSheet, { defval: '' });
 
           if (sheetJson.length === 0) {
-            alert('Tệp CSV không có dòng dữ liệu nào.');
+            showToast('Tệp CSV không có dòng dữ liệu nào.', 'warning');
             return;
           }
 
@@ -205,7 +207,7 @@ export const ImportCsvView: React.FC<ImportCsvViewProps> = ({ existingStudents, 
           setCurrentStep(2);
         } catch (err) {
           console.error('Error reading CSV:', err);
-          alert('Không thể đọc tệp CSV. Vui lòng đảm bảo tệp có định dạng UTF-8.');
+          showToast('Không thể đọc tệp CSV. Vui lòng đảm bảo tệp có định dạng UTF-8.', 'error');
         }
       };
       reader.readAsText(file, 'utf-8');
@@ -368,7 +370,7 @@ export const ImportCsvView: React.FC<ImportCsvViewProps> = ({ existingStudents, 
   const handleConfirmImport = async () => {
     const validRows = parsedRows.filter(r => r.isValid);
     if (validRows.length === 0) {
-      alert('Không có bản ghi hợp lệ nào để nhập.');
+      showToast('Không có bản ghi hợp lệ nào để nhập.', 'warning');
       return;
     }
 

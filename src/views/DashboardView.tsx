@@ -20,6 +20,7 @@ import {
 import { Student, ActiveNavTab, ClassSettings, AttendanceRecord, formatDateDisplay } from '../types/index.ts';
 import { StudentIllustration } from '../components/StudentIllustration.tsx';
 import { storage } from '../services/storage.ts';
+import { useNotification } from '../context/NotificationContext.tsx';
 
 interface DashboardViewProps {
   students: Student[];
@@ -36,6 +37,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigate,
   onSelectStudent,
 }) => {
+  const { showConfirm, showToast } = useNotification();
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'code' | 'dob'>('name');
@@ -167,10 +169,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   const handleDelete = (student: Student) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa hồ sơ học sinh ${student.fullName}? Dữ liệu sẽ được lưu trữ.`)) {
-      storage.deleteStudent(student.id);
-      setActiveMenuId(null);
-    }
+    showConfirm({
+      title: 'Xóa hồ sơ học sinh',
+      message: `Bạn có chắc chắn muốn xóa hồ sơ học sinh ${student.fullName}? Dữ liệu sẽ được lưu trữ an toàn.`,
+      confirmText: 'Xóa hồ sơ',
+      isDanger: true,
+      onConfirm: () => {
+        storage.deleteStudent(student.id);
+        setActiveMenuId(null);
+        showToast(`Đã xóa hồ sơ học sinh ${student.fullName}`, 'success');
+      },
+    });
   };
 
   return (

@@ -16,6 +16,7 @@ import {
   ActiveNavTab,
 } from '../types/index.ts';
 import { storage, getTodayDateString } from '../services/storage.ts';
+import { useNotification } from '../context/NotificationContext.tsx';
 
 interface MathViewProps {
   activeTab?: ActiveNavTab;
@@ -34,6 +35,7 @@ export const MathView: React.FC<MathViewProps> = ({
   onNavigate,
   onSelectStudent,
 }) => {
+  const { showToast } = useNotification();
   const [activeSubTab, setActiveSubTab] = useState<'summary' | 'entry' | 'support'>('summary');
 
   // Synchronize with activeTab from left navigation / right column
@@ -65,7 +67,7 @@ export const MathView: React.FC<MathViewProps> = ({
   const handleSaveAssessment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudentId) {
-      alert('Vui lòng chọn một học sinh để ghi nhận kết quả');
+      showToast('Vui lòng chọn một học sinh để ghi nhận kết quả', 'warning');
       return;
     }
 

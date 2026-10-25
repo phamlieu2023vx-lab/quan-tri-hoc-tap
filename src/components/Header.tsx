@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BookOpen, Building2, User, ChevronDown, Sparkles, LogOut, Settings, ShieldCheck, Download, Type, Database } from 'lucide-react';
 import { ClassSettings } from '../types/index.ts';
+import { useNotification } from '../context/NotificationContext.tsx';
 
 interface HeaderProps {
   settings: ClassSettings;
@@ -11,6 +12,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ settings, onNavigate, onExportBackup, onToggleFontMode, onOpenSupabase }) => {
+  const { showToast } = useNotification();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const handleSupabaseClick = () => {
@@ -196,7 +198,7 @@ export const Header: React.FC<HeaderProps> = ({ settings, onNavigate, onExportBa
                 <button
                   onClick={() => {
                     setDropdownOpen(false);
-                    alert('Hệ thống đang hoạt động ở chế độ Giáo viên chủ nhiệm Lớp 1/2.');
+                    showToast('Hệ thống đang hoạt động ở chế độ Giáo viên chủ nhiệm Lớp 1/2.', 'info');
                   }}
                   className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors font-serif"
                 >

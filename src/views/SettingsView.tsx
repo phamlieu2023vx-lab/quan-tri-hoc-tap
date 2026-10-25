@@ -18,6 +18,7 @@ import {
 import { ClassSettings, ActiveNavTab } from '../types/index.ts';
 import { storage } from '../services/storage.ts';
 import { SupabaseSyncManager } from '../components/SupabaseSyncManager.tsx';
+import { useNotification } from '../context/NotificationContext.tsx';
 
 interface SettingsViewProps {
   settings: ClassSettings;
@@ -26,6 +27,7 @@ interface SettingsViewProps {
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onNavigate, defaultSubTab = 'supabase' }) => {
+  const { showConfirm, showToast } = useNotification();
   const [activeSubTab, setActiveSubTab] = useState<'class_info' | 'supabase' | 'backup'>(defaultSubTab);
   const [formData, setFormData] = useState<ClassSettings>({ ...settings });
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
@@ -73,15 +75,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ settings, onNavigate
 
   // Reset to factory defaults
   const handleResetDefaults = () => {
-    if (
-      window.confirm(
-        'Bạn có chắc chắn muốn đặt lại dữ liệu về trạng thái ban đầu của Lớp 1/2 (30 học sinh chuẩn)?'
-      )
-    ) {
-      storage.resetToFactoryDefaults();
-      setFormData(storage.getSettings());
-      alert('Đã khôi phục dữ liệu ban đầu thành công!');
-    }
+    showConfirm({
+      title: 'Khôi phục dữ liệu mặc định',
+      message: 'Bạn có chắc chắn muốn đặt lại dữ liệu về trạng thái ban đầu của Lớp 1/2 (30 học sinh chuẩn)? Tất cả các thiết lập và dữ liệu sẽ được khôi phục.',
+      confirmText: 'Khôi phục mặc định',
+      isDanger: true,
+      onConfirm: () => {
+        storage.resetToFactoryDefaults();
+        setFormData(storage.getSettings());
+        showToast('Đã khôi phục dữ liệu ban đầu thành công!', 'success');
+      },
+    });
   };
 
   return (

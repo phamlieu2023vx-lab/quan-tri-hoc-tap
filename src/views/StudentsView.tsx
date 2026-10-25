@@ -29,6 +29,7 @@ import {
   splitVietnameseName,
 } from '../types/index.ts';
 import { storage } from '../services/storage.ts';
+import { useNotification } from '../context/NotificationContext.tsx';
 
 interface StudentsViewProps {
   activeTab?: ActiveNavTab;
@@ -43,6 +44,7 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
   onNavigate,
   onSelectStudent,
 }) => {
+  const { showConfirm } = useNotification();
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState<'all' | 'Nam' | 'Nữ'>('all');
@@ -276,7 +278,7 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
   // Export to CSV
   const handleExportCsv = () => {
     if (filteredStudents.length === 0) {
-      alert('Không có học sinh nào trong danh sách để xuất tệp.');
+      showNotice('error', 'Không có học sinh nào trong danh sách để xuất tệp.');
       return;
     }
 
@@ -297,18 +299,29 @@ export const StudentsView: React.FC<StudentsViewProps> = ({
 
   // Load Demo Data
   const handleLoadDemo = () => {
-    if (window.confirm('Bạn có muốn nạp 5 học sinh mẫu có gắn nhãn [DỮ LIỆU DEMO] để kiểm thử giao diện?')) {
-      storage.loadDemoData();
-      showNotice('success', 'Đã nạp danh sách học sinh thử nghiệm [DỮ LIỆU DEMO]');
-    }
+    showConfirm({
+      title: 'Nạp dữ liệu mẫu',
+      message: 'Bạn có muốn nạp 5 học sinh mẫu có gắn nhãn [DỮ LIỆU DEMO] để kiểm thử giao diện?',
+      confirmText: 'Nạp dữ liệu mẫu',
+      onConfirm: () => {
+        storage.loadDemoData();
+        showNotice('success', 'Đã nạp danh sách học sinh thử nghiệm [DỮ LIỆU DEMO]');
+      },
+    });
   };
 
   // Clear All
   const handleClearAll = () => {
-    if (window.confirm('CẢNH BÁO: Bạn có chắc chắn muốn xóa toàn bộ danh sách để bắt đầu nhập hồ sơ thực tế của lớp 1/2? Thao tác này sẽ xóa tất cả học sinh hiện tại.')) {
-      storage.clearAllStudents();
-      showNotice('success', 'Đã dọn dẹp danh sách. Bạn có thể thêm hoặc nhập danh sách thật ngay bây giờ.');
-    }
+    showConfirm({
+      title: 'Xóa toàn bộ danh sách lớp',
+      message: 'CẢNH BÁO: Bạn có chắc chắn muốn xóa toàn bộ danh sách để bắt đầu nhập hồ sơ thực tế của lớp 1/2? Thao tác này sẽ xóa tất cả học sinh hiện tại.',
+      confirmText: 'Xóa tất cả',
+      isDanger: true,
+      onConfirm: () => {
+        storage.clearAllStudents();
+        showNotice('success', 'Đã dọn dẹp danh sách. Bạn có thể thêm hoặc nhập danh sách thật ngay bây giờ.');
+      },
+    });
   };
 
   return (

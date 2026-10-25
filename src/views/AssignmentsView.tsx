@@ -21,6 +21,7 @@ import {
   ActiveNavTab,
 } from '../types/index.ts';
 import { storage, getTodayDateString } from '../services/storage.ts';
+import { useNotification } from '../context/NotificationContext.tsx';
 
 interface AssignmentsViewProps {
   activeTab?: ActiveNavTab;
@@ -35,6 +36,7 @@ export const AssignmentsView: React.FC<AssignmentsViewProps> = ({
   assignments,
   onNavigate,
 }) => {
+  const { showToast } = useNotification();
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(
     assignments[0] || null
   );
@@ -82,7 +84,7 @@ export const AssignmentsView: React.FC<AssignmentsViewProps> = ({
   const handleSaveAssignment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert('Vui lòng nhập tên phiếu bài tập');
+      showToast('Vui lòng nhập tên phiếu bài tập', 'warning');
       return;
     }
 

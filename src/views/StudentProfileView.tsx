@@ -35,6 +35,7 @@ import {
   splitVietnameseName,
 } from '../types/index.ts';
 import { storage } from '../services/storage.ts';
+import { useNotification } from '../context/NotificationContext.tsx';
 
 interface StudentProfileViewProps {
   student: Student | undefined;
@@ -56,6 +57,7 @@ export const StudentProfileView: React.FC<StudentProfileViewProps> = ({
   onSelectStudent,
   onNavigate,
 }) => {
+  const { showToast } = useNotification();
   // 7 distinct tabs as requested
   const [activeTab, setActiveTab] = useState<
     'info' | 'attendance' | 'vietnamese' | 'math' | 'comments' | 'support_needed' | 'support_plan'
@@ -206,8 +208,9 @@ export const StudentProfileView: React.FC<StudentProfileViewProps> = ({
   // Handle save new assessment
   const handleSaveAssessment = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!student) return;
     if (!newCriteriaId) {
-      alert('Vui lòng chọn nội dung đánh giá');
+      showToast('Vui lòng chọn nội dung đánh giá', 'warning');
       return;
     }
     const crit = allCriteria.find(c => c.id === newCriteriaId);
