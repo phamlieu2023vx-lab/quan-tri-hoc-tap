@@ -48,7 +48,7 @@ export default function App() {
   const [activities, setActivities] = useState<ActivityLog[]>(storage.getActivities());
   const [criteria, setCriteria] = useState<Criteria[]>(storage.getCriteria());
 
-  // Subscribe to storage changes for reactive state sync
+  // Subscribe to storage changes for reactive state sync & fetch remote students on mount
   useEffect(() => {
     const reloadAll = () => {
       setSettings(storage.getSettings());
@@ -62,6 +62,15 @@ export default function App() {
     };
 
     const unsubscribe = storage.subscribe('*', reloadAll);
+
+    // Explicitly sync remote (Supabase cloud & server DB) on mount so another browser gets latest data immediately
+    storage.syncRemoteStudents().then(synced => {
+      if (synced && synced.length > 0) {
+        setStudents(synced);
+      }
+      reloadAll();
+    });
+
     return () => unsubscribe();
   }, []);
 

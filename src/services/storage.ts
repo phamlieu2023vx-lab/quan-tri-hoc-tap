@@ -963,9 +963,31 @@ class StorageService {
   }
 
   // --- Remote Server Sync ---
-  public async syncRemoteStudents(): Promise<void> {
-    if (typeof window === 'undefined') return;
+  public async syncRemoteStudents(): Promise<Student[]> {
+    if (typeof window === 'undefined') return this.getStudents();
     try {
+      // 1. Try pulling from Supabase cloud first if client is configured
+      try {
+        const { pullStudentsFromSupabase } = await import('./supabaseClient.ts');
+        const supabaseRes = await pullStudentsFromSupabase();
+        if (supabaseRes.students && supabaseRes.students.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(supabaseRes.students));
+          this.notify(STORAGE_KEYS.STUDENTS);
+
+          // Mirror to server database
+          fetch('/api/students/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ students: supabaseRes.students, updateExisting: true }),
+          }).catch(e => console.warn('Supabase to server sync error:', e));
+
+          return supabaseRes.students;
+        }
+      } catch (sbErr) {
+        // Fallback to server sync
+      }
+
+      // 2. Fetch from Express backend server (/api/students)
       const res = await fetch('/api/students');
       if (res.ok) {
         const data = await res.json();
@@ -982,9 +1004,21 @@ class StorageService {
                 body: JSON.stringify({ students: localStudents, updateExisting: true }),
               });
             }
+            return localStudents;
           } else {
+            // Check if this browser has never been modified (only default 2024 timestamps)
+            const isLocalFreshDefault = localStudents.every(
+              s => (s.updatedAt || '').startsWith('2024') || !s.updatedAt
+            );
+
+            if (isLocalFreshDefault) {
+              // This is a new/different browser! Adopt server students immediately
+              localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(serverStudents));
+              this.notify(STORAGE_KEYS.STUDENTS);
+              return serverStudents;
+            }
+
             // SMART MERGE: Compare by ID and updatedAt timestamps!
-            // Never overwrite local changes if local timestamp is newer or equal
             let hasNewerLocal = false;
             const mergedMap = new Map<string, Student>();
 
@@ -1018,7 +1052,7 @@ class StorageService {
             localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(mergedList));
             this.notify(STORAGE_KEYS.STUDENTS);
 
-            // If we have newer local modifications (e.g. notes changed), push to server
+            // If we have newer local modifications, push to server
             if (hasNewerLocal) {
               fetch('/api/students/batch', {
                 method: 'POST',
@@ -1026,12 +1060,14 @@ class StorageService {
                 body: JSON.stringify({ students: mergedList, updateExisting: true }),
               }).catch(e => console.warn('Sync newer batch error:', e));
             }
+            return mergedList;
           }
         }
       }
     } catch (e) {
       console.warn('[LearnBridge] Remote sync fallback to localStorage', e);
     }
+    return this.getStudents();
   }
 
   // Auto-sync a single student to Supabase cloud if configured
