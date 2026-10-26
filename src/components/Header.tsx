@@ -1,19 +1,32 @@
 import React, { useState } from 'react';
 import { BookOpen, Building2, User, ChevronDown, Sparkles, LogOut, Settings, ShieldCheck, Download, Type, Database } from 'lucide-react';
 import { ClassSettings } from '../types/index.ts';
+import { UserAccount } from '../types/auth.ts';
 import { useNotification } from '../context/NotificationContext.tsx';
 
 interface HeaderProps {
   settings: ClassSettings;
+  currentUser?: UserAccount | null;
   onNavigate: (tab: string) => void;
   onExportBackup: () => void;
   onToggleFontMode?: () => void;
   onOpenSupabase?: () => void;
+  onLogout?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ settings, onNavigate, onExportBackup, onToggleFontMode, onOpenSupabase }) => {
+export const Header: React.FC<HeaderProps> = ({
+  settings,
+  currentUser,
+  onNavigate,
+  onExportBackup,
+  onToggleFontMode,
+  onOpenSupabase,
+  onLogout,
+}) => {
   const { showToast } = useNotification();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const displayName = currentUser?.fullName || settings.teacherName;
 
   const handleSupabaseClick = () => {
     if (onOpenSupabase) {
@@ -119,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({ settings, onNavigate, onExportBa
               </div>
 
               <div className="text-left hidden sm:block leading-tight">
-                <div className="text-sm font-bold text-white font-serif">{settings.teacherName}</div>
+                <div className="text-sm font-bold text-white font-serif">{displayName}</div>
                 <div className="text-[11px] text-blue-100 italic">Giáo viên chủ nhiệm</div>
               </div>
 
@@ -134,8 +147,10 @@ export const Header: React.FC<HeaderProps> = ({ settings, onNavigate, onExportBa
               >
                 <div className="px-4 py-2.5 border-b border-gray-100 bg-[#F7FAFF]">
                   <p className="text-xs text-gray-500 font-serif">Tài khoản giáo viên</p>
-                  <p className="text-sm font-bold text-[#1557A6] font-serif">{settings.teacherName}</p>
-                  <p className="text-xs text-gray-600 font-serif">Lớp {settings.className} – {settings.schoolName}</p>
+                  <p className="text-sm font-bold text-[#1557A6] font-serif">{displayName}</p>
+                  <p className="text-xs text-gray-600 font-serif">
+                    Lớp {currentUser?.className || settings.className} – {currentUser?.schoolName || settings.schoolName}
+                  </p>
                 </div>
 
                 {/* Supabase entry */}
@@ -198,12 +213,16 @@ export const Header: React.FC<HeaderProps> = ({ settings, onNavigate, onExportBa
                 <button
                   onClick={() => {
                     setDropdownOpen(false);
-                    showToast('Hệ thống đang hoạt động ở chế độ Giáo viên chủ nhiệm Lớp 1/2.', 'info');
+                    if (onLogout) {
+                      onLogout();
+                    } else {
+                      showToast('Hệ thống đang hoạt động ở chế độ Giáo viên chủ nhiệm Lớp 1/2.', 'info');
+                    }
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors font-serif"
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors font-serif cursor-pointer"
                 >
                   <LogOut className="w-4 h-4 text-red-500" />
-                  <span>Đăng xuất</span>
+                  <span>Đăng xuất tài khoản</span>
                 </button>
               </div>
             )}

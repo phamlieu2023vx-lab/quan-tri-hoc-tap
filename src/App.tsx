@@ -17,9 +17,13 @@ import { LessonsView } from './views/LessonsView.tsx';
 import { AiAssistantView } from './views/AiAssistantView.tsx';
 import { ReportsView } from './views/ReportsView.tsx';
 import { SettingsView } from './views/SettingsView.tsx';
+import { AuthView } from './views/AuthView.tsx';
 
-// Storage & Types
+// Storage, Auth & Types
 import { storage, getTodayDateString } from './services/storage.ts';
+import { authService } from './services/authService.ts';
+import { UserAccount } from './types/auth.ts';
+import { useNotification } from './context/NotificationContext.tsx';
 import {
   Student,
   AttendanceRecord,
@@ -33,6 +37,8 @@ import {
 } from './types/index.ts';
 
 export default function App() {
+  const { showConfirm, showToast } = useNotification();
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(authService.getCurrentUser());
   const [activeTab, setActiveTab] = useState<ActiveNavTab>('dashboard');
   const [selectedStudentId, setSelectedStudentId] = useState<string>('hs-1');
   const [makeupStudentName, setMakeupStudentName] = useState<string>('');
@@ -115,6 +121,28 @@ export default function App() {
     setSettings(updated);
   };
 
+  // Sync auth state
+  useEffect(() => {
+    const unsub = authService.subscribe(user => {
+      setCurrentUser(user);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleLogout = () => {
+    showConfirm({
+      title: 'Đăng xuất tài khoản',
+      message: 'Cô/Thầy có chắc chắn muốn đăng xuất khỏi phiên làm việc hiện tại?',
+      confirmText: 'Đăng xuất',
+      isDanger: true,
+      onConfirm: () => {
+        authService.logout();
+        setCurrentUser(null);
+        showToast('Đã đăng xuất khỏi hệ thống', 'info');
+      },
+    });
+  };
+
   // Handle trigger makeup request from Attendance to AI Assistant
   const handleTriggerMakeup = (studentName: string, date: string) => {
     setMakeupStudentName(studentName);
@@ -122,15 +150,22 @@ export default function App() {
     setActiveTab('ai_assistant');
   };
 
+  // If not authenticated, show full-screen Teacher Auth (Login & Register) view
+  if (!currentUser) {
+    return <AuthView onLoginSuccess={user => setCurrentUser(user)} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#F7FAFF] flex flex-col font-serif text-[#17365D]">
       {/* 1. Header */}
       <Header
         settings={settings}
+        currentUser={currentUser}
         onNavigate={tab => setActiveTab(tab as ActiveNavTab)}
         onExportBackup={handleExportBackup}
         onToggleFontMode={handleToggleFontMode}
         onOpenSupabase={() => setActiveTab('settings')}
+        onLogout={handleLogout}
       />
 
       {/* 2. Main Workspace Body: Sidebar + Main Content Area + Right Info Column */}

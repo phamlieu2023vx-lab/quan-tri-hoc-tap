@@ -966,22 +966,24 @@ class StorageService {
   public async syncRemoteStudents(): Promise<Student[]> {
     if (typeof window === 'undefined') return this.getStudents();
     try {
-      // 1. Try pulling from Supabase cloud first if client is configured
+      // 1. Try pulling from Supabase cloud first if client is configured with valid key
       try {
-        const { pullStudentsFromSupabase } = await import('./supabaseClient.ts');
-        const supabaseRes = await pullStudentsFromSupabase();
-        if (supabaseRes.students && supabaseRes.students.length > 0) {
-          localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(supabaseRes.students));
-          this.notify(STORAGE_KEYS.STUDENTS);
+        const { pullStudentsFromSupabase, isSupabaseConfigured } = await import('./supabaseClient.ts');
+        if (isSupabaseConfigured()) {
+          const supabaseRes = await pullStudentsFromSupabase();
+          if (supabaseRes.students && supabaseRes.students.length > 0) {
+            localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(supabaseRes.students));
+            this.notify(STORAGE_KEYS.STUDENTS);
 
-          // Mirror to server database
-          fetch('/api/students/batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ students: supabaseRes.students, updateExisting: true }),
-          }).catch(e => console.warn('Supabase to server sync error:', e));
+            // Mirror to server database
+            fetch('/api/students/batch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ students: supabaseRes.students, updateExisting: true }),
+            }).catch(e => console.warn('Supabase to server sync error:', e));
 
-          return supabaseRes.students;
+            return supabaseRes.students;
+          }
         }
       } catch (sbErr) {
         // Fallback to server sync

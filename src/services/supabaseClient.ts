@@ -20,7 +20,7 @@ export interface SupabaseConfig {
 
 export const DEFAULT_SUPABASE_CONFIG: SupabaseConfig = {
   url: import.meta.env.VITE_SUPABASE_URL || 'https://mcngorgybkspuhcfnued.supabase.co',
-  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || 'mcngorgybkspuhcfnued',
+  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
   autoSync: false,
 };
 
@@ -85,6 +85,23 @@ export function analyzeKeyFormat(key: string): { isValidFormat: boolean; warning
   };
 }
 
+export function formatSupabaseError(err: unknown): string {
+  if (!err) return 'Lỗi không xác định';
+  if (typeof err === 'string') return err;
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'object') {
+    const obj = err as Record<string, any>;
+    return obj.message || obj.error_description || obj.error || JSON.stringify(err);
+  }
+  return String(err);
+}
+
+export function isSupabaseConfigured(): boolean {
+  const config = getSupabaseConfig();
+  if (!config.url || !config.anonKey) return false;
+  return analyzeKeyFormat(config.anonKey).isValidFormat;
+}
+
 let cachedClient: SupabaseClient | null = null;
 let cachedConfigKey = '';
 
@@ -97,7 +114,7 @@ export function getSupabaseClient(): SupabaseClient | null {
     return cachedClient;
   }
 
-  if (!config.url || !config.anonKey) {
+  if (!config.url || !config.anonKey || !analyzeKeyFormat(config.anonKey).isValidFormat) {
     return null;
   }
 
@@ -111,7 +128,7 @@ export function getSupabaseClient(): SupabaseClient | null {
     cachedConfigKey = configKey;
     return cachedClient;
   } catch (err) {
-    console.error('Failed to initialize Supabase client:', err);
+    console.warn('Failed to initialize Supabase client:', formatSupabaseError(err));
     return null;
   }
 }
@@ -261,7 +278,7 @@ function rowToStudent(r: any): Student {
 // Push all students to Supabase
 export async function pushStudentsToSupabase(students: Student[]): Promise<{ count: number; error?: string }> {
   const client = getSupabaseClient();
-  if (!client) return { count: 0, error: 'Chưa cấu hình Supabase Client' };
+  if (!client) return { count: 0, error: 'Chưa cấu hình khóa Supabase Anon Key hợp lệ' };
 
   try {
     const rows = students.map(studentToRow);
@@ -269,8 +286,8 @@ export async function pushStudentsToSupabase(students: Student[]): Promise<{ cou
     if (error) throw error;
     return { count: rows.length };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('pushStudentsToSupabase error:', msg);
+    const msg = formatSupabaseError(err);
+    console.warn('pushStudentsToSupabase warning:', msg);
     return { count: 0, error: msg };
   }
 }
@@ -278,7 +295,7 @@ export async function pushStudentsToSupabase(students: Student[]): Promise<{ cou
 // Pull all students from Supabase
 export async function pullStudentsFromSupabase(): Promise<{ students: Student[]; error?: string }> {
   const client = getSupabaseClient();
-  if (!client) return { students: [], error: 'Chưa cấu hình Supabase Client' };
+  if (!client) return { students: [], error: 'Chưa cấu hình khóa Supabase Anon Key hợp lệ' };
 
   try {
     const { data, error } = await client.from('students').select('*').order('student_code', { ascending: true });
@@ -286,8 +303,8 @@ export async function pullStudentsFromSupabase(): Promise<{ students: Student[];
     const students = (data || []).map(rowToStudent);
     return { students };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('pullStudentsFromSupabase error:', msg);
+    const msg = formatSupabaseError(err);
+    console.warn('pullStudentsFromSupabase warning:', msg);
     return { students: [], error: msg };
   }
 }
